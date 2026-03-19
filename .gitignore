@@ -1,0 +1,33 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Sensitive files
+.env
+*.key
+*.secret
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+uv.lock
