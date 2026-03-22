@@ -12,7 +12,7 @@ from core.tools import ToolExecutor, search
 
 class AgentService:
     def __init__(self):
-        self.llm_client = myHelloAgentsLLM(verbose=False)
+        self.llm_client = myHelloAgentsLLM()
         self.tool_executor = ToolExecutor()
         self.tool_executor.registerTool(
             "Search",
