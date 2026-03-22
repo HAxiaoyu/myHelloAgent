@@ -16,8 +16,8 @@
       <TopBar
         :agents="agentOptions"
         :current-agent="currentAgent"
+        :is-connected="isConnected"
         @select-agent="selectAgent"
-        @new-chat="newConversation"
       />
 
       <!-- Message List -->
@@ -36,11 +36,6 @@
         @send="sendMessage"
         @interrupt="interrupt"
       />
-
-      <!-- Connection Status -->
-      <div class="connection-status">
-        {{ isConnected ? '● Connected' : '○ Disconnected' }}
-      </div>
     </div>
   </div>
 </template>

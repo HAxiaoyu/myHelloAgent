@@ -182,18 +182,10 @@ body {
   color: #000;
 }
 
-.new-chat-top {
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
+.connection-status-top {
   font-size: 12px;
-}
-
-.new-chat-top:hover {
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  padding: 6px 14px;
 }
 
 /* Message list */

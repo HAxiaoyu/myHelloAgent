@@ -10,9 +10,9 @@
         {{ agent.label }}
       </button>
     </div>
-    <button class="new-chat-top" @click="$emit('new-chat')">
-      New Chat
-    </button>
+    <div class="connection-status-top">
+      {{ isConnected ? '● Connected' : '○ Disconnected' }}
+    </div>
   </div>
 </template>
 
@@ -29,8 +29,12 @@ defineProps({
   currentAgent: {
     type: String,
     default: 'react'
+  },
+  isConnected: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['select-agent', 'new-chat'])
+defineEmits(['select-agent'])
 </script>
