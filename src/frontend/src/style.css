@@ -23,6 +23,7 @@ body {
   background: #fff;
   border-radius: 8px;
   margin-bottom: 16px;
+  border: 1px solid #e8e8e8;
 }
 
 .message {
@@ -70,4 +71,20 @@ body {
   background: #fff;
   border-radius: 8px;
   margin-bottom: 16px;
+}
+
+.empty-hint {
+  color: #999;
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 14px;
+}
+
+.cursor-blink {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }

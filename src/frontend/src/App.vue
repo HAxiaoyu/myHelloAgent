@@ -23,6 +23,9 @@
 
     <!-- Message List -->
     <div class="message-list" ref="messageList">
+      <div v-if="messages.length === 0 && !isGenerating" class="empty-hint">
+        开始对话吧！选择 Agent 类型，输入消息发送。
+      </div>
       <div
         v-for="(msg, index) in messages"
         :key="index"
@@ -37,7 +40,7 @@
         </div>
       </div>
       <div v-if="isGenerating" class="message message-agent">
-        <strong>Agent:</strong> {{ currentResponse }}
+        <strong>Agent:</strong> {{ currentResponse }}<span class="cursor-blink">|</span>
       </div>
     </div>
 
