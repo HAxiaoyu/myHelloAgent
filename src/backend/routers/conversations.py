@@ -1,8 +1,10 @@
 # src/backend/routers/conversations.py
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from datetime import datetime, timezone
 from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..models.db_models import Conversation, Message
@@ -82,7 +84,7 @@ async def get_conversation(
     )
     conv = result.scalar_one_or_none()
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     msg_result = await session.execute(
         select(Message)
@@ -120,7 +122,7 @@ async def update_conversation(
     )
     conv = result.scalar_one_or_none()
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     if data.title is not None:
         conv.title = data.title
@@ -155,7 +157,7 @@ async def delete_conversation(
     )
     conv = result.scalar_one_or_none()
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     await session.delete(conv)
     await session.commit()
@@ -173,7 +175,7 @@ async def add_message(
     )
     conv = result.scalar_one_or_none()
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     msg = Message(
         conversation_id=conversation_id,
@@ -183,7 +185,6 @@ async def add_message(
     )
     session.add(msg)
 
-    from datetime import datetime, timezone
     conv.updated_at = datetime.now(timezone.utc)
 
     await session.commit()
