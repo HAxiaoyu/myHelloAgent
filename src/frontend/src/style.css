@@ -203,54 +203,123 @@ body {
   padding: 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .message-container {
-  max-width: 768px;
+  max-width: 900px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .message {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
+/* User message - right aligned */
 .message-user {
+  align-items: flex-end;
+}
+
+.message-user .message-label {
+  text-align: right;
+}
+
+.message-user .message-content {
+  background: var(--accent);
+  color: #000;
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 70%;
+  word-wrap: break-word;
+  line-height: 1.7;
+}
+
+/* Agent message - left aligned */
+.message-agent {
+  align-items: flex-start;
+}
+
+.message-agent .message-label {
   text-align: left;
+}
+
+.message-agent .message-content {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 85%;
+  word-wrap: break-word;
+  line-height: 1.7;
 }
 
 .message-label {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 4px;
+}
+
+/* Thinking section - collapsible */
+.thinking-section {
+  background: var(--input-bg);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.thinking-header:hover {
+  background: var(--hover-bg);
+}
+
+.thinking-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.chevron {
+  transition: transform 0.2s;
+}
+
+.chevron-rotated {
+  transform: rotate(-90deg);
+}
+
+.thinking-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.message-content {
-  color: var(--text-primary);
-  line-height: 1.7;
-}
-
-.message-agent {
-  background: var(--card-bg);
-  padding: 16px;
-  border-radius: 12px;
-  border-left: 3px solid var(--accent);
-}
-
-.message-agent .message-label {
-  color: var(--accent);
-}
-
-.message-thinking {
-  background: var(--card-bg);
-  padding: 12px 16px;
-  border-radius: 8px;
+.thinking-content {
+  padding: 12px 14px;
+  padding-top: 0;
   font-size: 13px;
   color: var(--text-secondary);
+  line-height: 1.6;
   font-style: italic;
-  margin-bottom: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 0;
+  padding-top: 12px;
+  white-space: pre-wrap;
 }
 
 .empty-hint {

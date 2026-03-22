@@ -25,6 +25,7 @@
         :messages="messages"
         :is-generating="isGenerating"
         :current-response="currentResponse"
+        :current-thinking="currentThinking"
       />
 
       <!-- Input Area -->
@@ -60,6 +61,7 @@ const messages = ref([])
 const currentAgent = ref('react')
 const isGenerating = ref(false)
 const currentResponse = ref('')
+const currentThinking = ref('') // Store thinking content temporarily
 
 // Connection state
 const isConnected = ref(false)
@@ -104,26 +106,28 @@ function handleMessage(data) {
   if (data.type === 'token') {
     currentResponse.value += data.data.content
   } else if (data.type === 'thinking') {
-    messages.value.push({
-      type: 'thinking',
-      content: data.data.content
-    })
+    // Accumulate thinking content
+    currentThinking.value += data.data.content
   } else if (data.type === 'done') {
     if (currentResponse.value) {
       messages.value.push({
         type: currentAgent.value,
-        content: currentResponse.value
+        content: currentResponse.value,
+        thinking: currentThinking.value || null
       })
       currentResponse.value = ''
+      currentThinking.value = ''
     }
     isGenerating.value = false
   } else if (data.type === 'error') {
     messages.value.push({
       type: 'agent',
-      content: `Error: ${data.data.message}`
+      content: `Error: ${data.data.message}`,
+      thinking: null
     })
     isGenerating.value = false
     currentResponse.value = ''
+    currentThinking.value = ''
   }
 }
 
@@ -133,6 +137,7 @@ function sendMessage(content) {
 
   messages.value.push({ type: 'user', content })
   currentResponse.value = ''
+  currentThinking.value = ''
   isGenerating.value = true
 
   ws.send(content, currentAgent.value)
@@ -150,6 +155,7 @@ function interrupt() {
 function newConversation() {
   messages.value = []
   currentResponse.value = ''
+  currentThinking.value = ''
   activeConversationId.value = null
 }
 
