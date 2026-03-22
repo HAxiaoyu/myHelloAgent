@@ -38,7 +38,7 @@
           </div>
 
           <!-- Main response content -->
-          <div class="message-content">{{ msg.content }}</div>
+          <div class="message-content markdown-body" v-html="renderMarkdown(msg.content)"></div>
         </template>
       </div>
 
@@ -61,8 +61,8 @@
           </div>
         </div>
 
-        <div v-if="currentResponse" class="message-content">
-          {{ currentResponse }}<span class="cursor-blink">|</span>
+        <div v-if="currentResponse" class="message-content markdown-body">
+          <span v-html="renderMarkdown(currentResponse)"></span><span class="cursor-blink">|</span>
         </div>
       </div>
     </div>
@@ -71,6 +71,7 @@
 
 <script setup>
 import { ref, watch, nextTick, reactive } from 'vue'
+import { renderMarkdown } from '../utils/markdown.js'
 
 const props = defineProps({
   messages: {
