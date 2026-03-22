@@ -1,112 +1,90 @@
 <template>
-  <div class="chat-container">
-    <!-- Header -->
-    <div class="header">
-      <h2>myHelloAgent</h2>
-      <div>
-        <a-select
-          v-model:value="currentAgent"
-          style="width: 200px; margin-right: 12px"
-          :options="agentOptions"
-        />
-        <a-button @click="newConversation">新建对话</a-button>
-      </div>
-    </div>
+  <div class="app-container" :data-theme="theme">
+    <!-- Sidebar -->
+    <Sidebar
+      :theme="theme"
+      :conversations="conversations"
+      :active-id="activeConversationId"
+      @toggle-theme="toggleTheme"
+      @new-chat="newConversation"
+      @select-conversation="selectConversation"
+    />
 
-    <!-- Tool Status -->
-    <div class="tool-status">
-      <span>工具状态: </span>
-      <a-tag v-for="tool in tools" :key="tool.name" :color="tool.available ? 'green' : 'red'">
-        {{ tool.name }}
-      </a-tag>
-    </div>
-
-    <!-- Message List -->
-    <div class="message-list" ref="messageList">
-      <div v-if="messages.length === 0 && !isGenerating" class="empty-hint">
-        开始对话吧！选择 Agent 类型，输入消息发送。
-      </div>
-      <div
-        v-for="(msg, index) in messages"
-        :key="index"
-        :class="['message', msg.type === 'user' ? 'message-user' : 'message-agent']"
-      >
-        <div v-if="msg.type === 'thinking'" class="message-thinking">
-          {{ msg.content }}
-        </div>
-        <div v-else>
-          <strong>{{ msg.type === 'user' ? '我' : 'Agent' }}:</strong>
-          {{ msg.content }}
-        </div>
-      </div>
-      <div v-if="isGenerating" class="message message-agent">
-        <strong>Agent:</strong> {{ currentResponse }}<span class="cursor-blink">|</span>
-      </div>
-    </div>
-
-    <!-- Input -->
-    <div class="input-area">
-      <a-input
-        v-model:value="inputMessage"
-        placeholder="输入消息..."
-        @pressEnter="sendMessage"
-        :disabled="!isConnected || isGenerating"
+    <!-- Main Area -->
+    <div class="main-area">
+      <!-- Top Bar with Agent Tabs -->
+      <TopBar
+        :agents="agentOptions"
+        :current-agent="currentAgent"
+        @select-agent="selectAgent"
+        @new-chat="newConversation"
       />
-      <a-button
-        type="primary"
-        @click="sendMessage"
-        :disabled="!inputMessage.trim() || !isConnected || isGenerating"
-      >
-        发送
-      </a-button>
-      <a-button
-        v-if="isGenerating"
-        danger
-        @click="interrupt"
-      >
-        停止
-      </a-button>
-    </div>
 
-    <!-- Connection Status -->
-    <div style="margin-top: 12px; text-align: center; color: #999">
-      {{ isConnected ? '已连接' : '未连接' }}
+      <!-- Message List -->
+      <MessageList
+        :messages="messages"
+        :is-generating="isGenerating"
+        :current-response="currentResponse"
+      />
+
+      <!-- Input Area -->
+      <InputArea
+        :disabled="false"
+        :is-connected="isConnected"
+        :is-generating="isGenerating"
+        @send="sendMessage"
+        @interrupt="interrupt"
+      />
+
+      <!-- Connection Status -->
+      <div class="connection-status">
+        {{ isConnected ? '● Connected' : '○ Disconnected' }}
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted } from 'vue'
+import Sidebar from './components/Sidebar.vue'
+import TopBar from './components/TopBar.vue'
+import MessageList from './components/MessageList.vue'
+import InputArea from './components/InputArea.vue'
 import { getAgents, getTools, createChatSocket } from './api.js'
 
+// Theme state
+const theme = ref(localStorage.getItem('theme') || 'dark')
+
+// Conversation state
 const messages = ref([])
-const inputMessage = ref('')
 const currentAgent = ref('react')
-const agents = ref([])
-const tools = ref([])
-const isConnected = ref(false)
 const isGenerating = ref(false)
 const currentResponse = ref('')
-const messageList = ref(null)
+
+// Connection state
+const isConnected = ref(false)
+
+// Agent options (loaded from API)
+const agentOptions = ref([
+  { id: 'react', label: 'ReAct Agent' },
+  { id: 'reflection', label: 'Reflection' },
+  { id: 'plan', label: 'Plan' }
+])
+
+// History state (mock for now)
+const conversations = ref([])
+const activeConversationId = ref(null)
 
 let ws = null
 
-const agentOptions = ref([])
+// Theme toggle
+function toggleTheme() {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  localStorage.setItem('theme', theme.value)
+  document.documentElement.setAttribute('data-theme', theme.value)
+}
 
-onMounted(async () => {
-  // Load agents and tools
-  agents.value = await getAgents()
-  tools.value = await getTools()
-
-  agentOptions.value = agents.value.map(a => ({
-    value: a.id,
-    label: a.name
-  }))
-
-  // Connect WebSocket
-  connectWebSocket()
-})
-
+// Initialize WebSocket
 function connectWebSocket() {
   ws = createChatSocket({
     onOpen: () => {
@@ -121,20 +99,19 @@ function connectWebSocket() {
   })
 }
 
+// Handle incoming WebSocket messages
 function handleMessage(data) {
   if (data.type === 'token') {
     currentResponse.value += data.data.content
-    scrollToBottom()
   } else if (data.type === 'thinking') {
     messages.value.push({
       type: 'thinking',
       content: data.data.content
     })
-    scrollToBottom()
   } else if (data.type === 'done') {
     if (currentResponse.value) {
       messages.value.push({
-        type: 'agent',
+        type: currentAgent.value,
         content: currentResponse.value
       })
       currentResponse.value = ''
@@ -143,26 +120,25 @@ function handleMessage(data) {
   } else if (data.type === 'error') {
     messages.value.push({
       type: 'agent',
-      content: `错误: ${data.data.message}`
+      content: `Error: ${data.data.message}`
     })
     isGenerating.value = false
     currentResponse.value = ''
   }
 }
 
-function sendMessage() {
-  if (!inputMessage.value.trim() || !ws) return
+// Send message
+function sendMessage(content) {
+  if (!content || !ws) return
 
-  const content = inputMessage.value.trim()
   messages.value.push({ type: 'user', content })
-  inputMessage.value = ''
   currentResponse.value = ''
   isGenerating.value = true
 
   ws.send(content, currentAgent.value)
-  scrollToBottom()
 }
 
+// Interrupt generation
 function interrupt() {
   if (ws) {
     ws.interrupt()
@@ -170,16 +146,40 @@ function interrupt() {
   }
 }
 
+// New conversation
 function newConversation() {
   messages.value = []
   currentResponse.value = ''
+  activeConversationId.value = null
 }
 
-function scrollToBottom() {
-  nextTick(() => {
-    if (messageList.value) {
-      messageList.value.scrollTop = messageList.value.scrollHeight
-    }
-  })
+// Select conversation from history
+function selectConversation(id) {
+  activeConversationId.value = id
+  // In future, load conversation from storage
 }
+
+// Select agent
+function selectAgent(agentId) {
+  currentAgent.value = agentId
+}
+
+onMounted(async () => {
+  // Apply saved theme
+  document.documentElement.setAttribute('data-theme', theme.value)
+
+  // Load agents from API
+  try {
+    const agents = await getAgents()
+    agentOptions.value = agents.map(a => ({
+      id: a.id,
+      label: a.name
+    }))
+  } catch (e) {
+    console.error('Failed to load agents:', e)
+  }
+
+  // Connect WebSocket
+  connectWebSocket()
+})
 </script>
