@@ -41,3 +41,8 @@ package-lock.json
 .superpowers/
 *.backup
 .claude/settings.local.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
