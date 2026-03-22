@@ -51,7 +51,7 @@ import Sidebar from './components/Sidebar.vue'
 import TopBar from './components/TopBar.vue'
 import MessageList from './components/MessageList.vue'
 import InputArea from './components/InputArea.vue'
-import { getAgents, getTools, createChatSocket } from './api.js'
+import { getAgents, getTools, createChatSocket, getConversations, createConversation, getConversation, deleteConversation, addMessage, updateConversation } from './api.js'
 
 // Theme state
 const theme = ref(localStorage.getItem('theme') || 'dark')
@@ -76,6 +76,7 @@ const agentOptions = ref([
 // History state (mock for now)
 const conversations = ref([])
 const activeConversationId = ref(null)
+const currentConversationId = ref(null)
 
 let ws = null
 
@@ -102,7 +103,7 @@ function connectWebSocket() {
 }
 
 // Handle incoming WebSocket messages
-function handleMessage(data) {
+async function handleMessage(data) {
   if (data.type === 'token') {
     currentResponse.value += data.data.content
   } else if (data.type === 'thinking') {
@@ -114,11 +115,23 @@ function handleMessage(data) {
     }
   } else if (data.type === 'done') {
     if (currentResponse.value) {
+      const thinking = currentThinking.value || null
       messages.value.push({
         type: currentAgent.value,
         content: currentResponse.value,
-        thinking: currentThinking.value || null
+        thinking
       })
+
+      // Save assistant message
+      if (currentConversationId.value) {
+        try {
+          await addMessage(currentConversationId.value, 'assistant', currentResponse.value, thinking)
+          await loadConversations() // Refresh sidebar
+        } catch (e) {
+          console.error('Failed to save assistant message:', e)
+        }
+      }
+
       currentResponse.value = ''
       currentThinking.value = ''
     }
@@ -136,10 +149,31 @@ function handleMessage(data) {
 }
 
 // Send message
-function sendMessage(content) {
+async function sendMessage(content) {
   if (!content || !ws) return
 
+  // Create conversation if needed
+  if (!currentConversationId.value) {
+    try {
+      const conv = await createConversation(content.slice(0, 50), currentAgent.value)
+      currentConversationId.value = conv.id
+      await loadConversations()
+    } catch (e) {
+      console.error('Failed to create conversation:', e)
+    }
+  }
+
+  // Save user message
   messages.value.push({ type: 'user', content })
+
+  if (currentConversationId.value) {
+    try {
+      await addMessage(currentConversationId.value, 'user', content)
+    } catch (e) {
+      console.error('Failed to save user message:', e)
+    }
+  }
+
   currentResponse.value = ''
   currentThinking.value = ''
   isGenerating.value = true
@@ -156,17 +190,44 @@ function interrupt() {
 }
 
 // New conversation
-function newConversation() {
+async function newConversation() {
   messages.value = []
   currentResponse.value = ''
   currentThinking.value = ''
+  currentConversationId.value = null
   activeConversationId.value = null
 }
 
+// Load conversations from API
+async function loadConversations() {
+  try {
+    const convs = await getConversations()
+    conversations.value = convs.map(c => ({
+      id: c.id,
+      title: c.title,
+      date: new Date(c.updated_at).toLocaleDateString()
+    }))
+  } catch (e) {
+    console.error('Failed to load conversations:', e)
+  }
+}
+
 // Select conversation from history
-function selectConversation(id) {
+async function selectConversation(id) {
   activeConversationId.value = id
-  // In future, load conversation from storage
+  currentConversationId.value = id
+
+  try {
+    const conv = await getConversation(id)
+    messages.value = conv.messages.map(m => ({
+      type: m.role === 'user' ? 'user' : conv.agent_type,
+      content: m.content,
+      thinking: m.thinking
+    }))
+    currentAgent.value = conv.agent_type
+  } catch (e) {
+    console.error('Failed to load conversation:', e)
+  }
 }
 
 // Select agent
@@ -188,6 +249,9 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to load agents:', e)
   }
+
+  // Load conversations from API
+  await loadConversations()
 
   // Connect WebSocket
   connectWebSocket()
