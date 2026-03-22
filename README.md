@@ -6,8 +6,7 @@
 > 
 > 🔗 教程地址：[DataWhale LLM Agent 教程](https://github.com/datawhalechina/llm-agent-tutorial)
 
-![alt text](image.png)
-![alt text](image-1.png)
+![alt text](image-2.png)
 ---
 
 ## 📖 项目简介
