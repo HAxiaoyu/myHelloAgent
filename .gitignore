@@ -36,3 +36,8 @@ uv.lock
 node_modules/
 dist/
 package-lock.json
+
+# Local development files
+.superpowers/
+*.backup
+.claude/settings.local.json
