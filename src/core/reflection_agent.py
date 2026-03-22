@@ -72,54 +72,64 @@ class ReflectionAgent:
 
         Args:
             task: The coding task
-            on_token: Callback for each token
+            on_token: Callback for final answer tokens
             on_thinking: Callback for thinking events
         Returns:
             Final optimized code
         """
         if on_thinking:
-            on_thinking("开始初始代码生成...")
+            on_thinking("🚀 开始初始代码生成...")
 
         # Initial execution
         initial_prompt = INITIAL_PROMPT_TEMPLATE.format(task=task)
-        initial_code = self._get_llm_response(initial_prompt, on_token)
+        initial_code = self._get_llm_response(initial_prompt)
         self.memory.add_record("execution", initial_code)
+
+        if on_thinking:
+            on_thinking(f"📝 初始代码已生成（{len(initial_code)} 字符）")
 
         # Reflection loop
         for i in range(self.max_iterations):
             if on_thinking:
-                on_thinking(f"第 {i+1}/{self.max_iterations} 轮反思...")
+                on_thinking(f"🔍 第 {i+1}/{self.max_iterations} 轮反思...")
 
             # Reflect
             last_code = self.memory.get_last_execution()
             reflect_prompt = REFLECT_PROMPT_TEMPLATE.format(task=task, code=last_code)
-            feedback = self._get_llm_response(reflect_prompt, on_token)
+            feedback = self._get_llm_response(reflect_prompt)
             self.memory.add_record("reflection", feedback)
+
+            if on_thinking:
+                on_thinking(f"💬 反思反馈: {feedback[:100]}...")
 
             # Check if done
             if "无需改进" in feedback or "no need for improvement" in feedback.lower():
                 if on_thinking:
-                    on_thinking("代码已无需改进，任务完成。")
+                    on_thinking("✅ 代码已无需改进，任务完成。")
                 break
 
             # Refine
             if on_thinking:
-                on_thinking("正在优化代码...")
+                on_thinking("⚙️ 正在优化代码...")
             refine_prompt = REFINE_PROMPT_TEMPLATE.format(
                 task=task, last_code_attempt=last_code, feedback=feedback
             )
-            refined_code = self._get_llm_response(refine_prompt, on_token)
+            refined_code = self._get_llm_response(refine_prompt)
             self.memory.add_record("execution", refined_code)
 
+        # Stream final code
         final_code = self.memory.get_last_execution()
+        if on_token and final_code:
+            for char in final_code:
+                on_token(char)
         return final_code
 
-    def _get_llm_response(self, prompt: str, on_token: Optional[Callable] = None) -> str:
+    def _get_llm_response(self, prompt: str) -> str:
         messages = [{"role": "user", "content": prompt}]
         response_text = self.llm_client.think(
             messages=messages,
             verbose=self.verbose,
-            on_token=on_token,
+            on_token=None,  # Don't stream intermediate output
         ) or ""
         return response_text
 

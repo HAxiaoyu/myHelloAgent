@@ -63,7 +63,7 @@ class ReActAgent:
 
         Args:
             question: User question
-            on_token: Callback for each token
+            on_token: Callback for final answer tokens
             on_thinking: Callback for thinking/tool events
         Yields:
             Event dicts for WebSocket streaming
@@ -83,28 +83,36 @@ class ReActAgent:
             messages = [{"role": "user", "content": prompt}]
 
             if on_thinking:
-                on_thinking(f"Step {current_step}: Thinking...")
+                on_thinking(f"📌 Step {current_step}: Thinking...")
 
             response_text = self.llm_client.think(
                 messages=messages,
                 verbose=self.verbose,
-                on_token=on_token,
+                on_token=None,  # Don't stream raw LLM output
             )
 
             if not response_text:
                 if on_thinking:
-                    on_thinking("Error: No response from LLM")
+                    on_thinking("❌ Error: No response from LLM")
                 break
 
             thought, action = self._parse_output(response_text)
 
+            # Send thought content to thinking callback
+            if thought and on_thinking:
+                on_thinking(f"💭 Thought: {thought}")
+
             if not action:
                 if on_thinking:
-                    on_thinking("Warning: No valid action parsed")
+                    on_thinking("⚠️ Warning: No valid action parsed")
                 break
 
             if action.startswith("Finish"):
                 final_answer = self._parse_action_input(action)
+                # Stream the final answer token by token
+                if on_token and final_answer:
+                    for char in final_answer:
+                        on_token(char)
                 return final_answer
 
             tool_name, tool_input = self._parse_action(action)
@@ -112,7 +120,7 @@ class ReActAgent:
                 continue
 
             if on_thinking:
-                on_thinking(f"Action: {tool_name}[{tool_input}]")
+                on_thinking(f"🔧 Action: {tool_name}[{tool_input}]")
 
             tool_func = self.tool_executor.getTool(name=tool_name)
             if not tool_func:
@@ -121,7 +129,7 @@ class ReActAgent:
                 observation = tool_func(tool_input)
 
             if on_thinking:
-                on_thinking(f"Observation: {observation}")
+                on_thinking(f"👁️ Observation: {observation}")
 
             self.history.append(f"Action: {action}")
             self.history.append(f"Observation: {observation}")

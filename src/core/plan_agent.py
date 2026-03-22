@@ -45,7 +45,7 @@ class Planner:
     def plan(
         self,
         question: str,
-        on_token: Optional[Callable[[str], None]] = None,
+        on_thinking: Optional[Callable[[str], None]] = None,
     ) -> List[str]:
         prompt = PLANNER_PROMPT_TEMPLATE.format(question=question)
         messages = [{"role": "user", "content": prompt}]
@@ -53,7 +53,7 @@ class Planner:
         response_text = self.llm_client.think(
             messages=messages,
             verbose=self.verbose,
-            on_token=on_token,
+            on_token=None,  # Don't stream planning output
         ) or ""
 
         try:
@@ -80,7 +80,7 @@ class Executor:
 
         for i, step in enumerate(plan):
             if on_thinking:
-                on_thinking(f"执行步骤 {i+1}/{len(plan)}: {step}")
+                on_thinking(f"📌 执行步骤 {i+1}/{len(plan)}: {step}")
 
             prompt = EXECUTOR_PROMPT_TEMPLATE.format(
                 question=question,
@@ -93,8 +93,11 @@ class Executor:
             response_text = self.llm_client.think(
                 messages=messages,
                 verbose=self.verbose,
-                on_token=on_token,
+                on_token=None,  # Don't stream intermediate output
             ) or ""
+
+            if on_thinking:
+                on_thinking(f"✅ 步骤 {i+1} 结果: {response_text[:100]}...")
 
             history += f"步骤 {i+1}: {step}\n结果：{response_text}\n\n"
 
@@ -119,24 +122,31 @@ class PlanAndSolveAgent:
 
         Args:
             question: User question
-            on_token: Callback for each token
+            on_token: Callback for final answer tokens
             on_thinking: Callback for thinking events
         Returns:
             Final answer
         """
         if on_thinking:
-            on_thinking("正在生成执行计划...")
+            on_thinking("📋 正在生成执行计划...")
 
-        plan = self.planner.plan(question, on_token)
+        plan = self.planner.plan(question, on_thinking)
         if not plan:
             if on_thinking:
-                on_thinking("无法生成有效的行动计划。")
+                on_thinking("❌ 无法生成有效的行动计划。")
             return None
 
         if on_thinking:
-            on_thinking(f"计划已生成，共 {len(plan)} 个步骤，开始执行...")
+            plan_text = "\n".join([f"  {i+1}. {step}" for i, step in enumerate(plan)])
+            on_thinking(f"📝 计划已生成:\n{plan_text}")
 
         final_answer = self.executor.execute(question, plan, on_token, on_thinking)
+
+        # Stream final answer
+        if on_token and final_answer:
+            for char in final_answer:
+                on_token(char)
+
         return final_answer
 
     def run(self, question: str):
