@@ -1,7 +1,9 @@
 # src/backend/models/db_models.py
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+
 from ..database import Base
 
 
@@ -11,8 +13,8 @@ class Conversation(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), default="New Conversation")
     agent_type = Column(String(50), default="react")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationship to messages
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
@@ -26,7 +28,7 @@ class Message(Base):
     role = Column(String(20), nullable=False)  # 'user' or 'assistant'
     content = Column(Text, nullable=False)
     thinking = Column(Text, nullable=True)  # Thinking content for assistant messages
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationship to conversation
     conversation = relationship("Conversation", back_populates="messages")
