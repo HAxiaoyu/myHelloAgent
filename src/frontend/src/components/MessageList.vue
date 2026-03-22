@@ -30,7 +30,7 @@
                   <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
               </span>
-              <span class="thinking-title">Thinking...</span>
+              <span class="thinking-title">思考过程</span>
             </div>
             <div v-show="expandedThinkings[index]" class="thinking-content">
               {{ msg.thinking }}
@@ -43,7 +43,7 @@
       </div>
 
       <!-- Streaming response -->
-      <div v-if="isGenerating && currentResponse" class="message message-agent">
+      <div v-if="isGenerating && (currentThinking || currentResponse)" class="message message-agent">
         <div class="message-label">Agent</div>
 
         <!-- Streaming thinking -->
@@ -54,14 +54,14 @@
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </span>
-            <span class="thinking-title">Thinking...</span>
+            <span class="thinking-title">思考过程</span>
           </div>
           <div v-show="expandedThinkings['streaming']" class="thinking-content">
             {{ currentThinking }}
           </div>
         </div>
 
-        <div class="message-content">
+        <div v-if="currentResponse" class="message-content">
           {{ currentResponse }}<span class="cursor-blink">|</span>
         </div>
       </div>

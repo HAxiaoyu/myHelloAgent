@@ -106,8 +106,12 @@ function handleMessage(data) {
   if (data.type === 'token') {
     currentResponse.value += data.data.content
   } else if (data.type === 'thinking') {
-    // Accumulate thinking content
-    currentThinking.value += data.data.content
+    // Accumulate thinking content with newline separator
+    if (currentThinking.value) {
+      currentThinking.value += '\n' + data.data.content
+    } else {
+      currentThinking.value = data.data.content
+    }
   } else if (data.type === 'done') {
     if (currentResponse.value) {
       messages.value.push({
